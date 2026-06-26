@@ -1,60 +1,73 @@
-# Sistema de Gestión de Despachos y Ventas - Arquitectura DevOps
+# Innovatech - Frontend Despacho (Plataforma DevOps)
 
-Este repositorio contiene la solución contenedorizada y automatizada para el Examen Transversal de la asignatura DevOps y Cloud Computing. El proyecto ha sido desacoplado en microservicios independientes utilizando Docker y desplegado en una arquitectura Cloud (AWS).
+Este repositorio almacena el código fuente, la configuración de empaquetamiento y la lógica de automatización para el despliegue continuo (CI/CD) del módulo Frontend del sistema **Innovatech** (`front_despacho`).
 
-# Arquitectura del Proyecto
+## 🛠️ Stack Tecnológico Utilizado
+* **Core:** React / Vite (Producción compilada en directorio `dist`)
+* **Contenerización:** Docker (Estrategia Avanzada Multi-stage Build)
+* **Web Server:** Nginx Alpine optimizado para arquitecturas SPA
+* **Orquestador:** Amazon ECS (Elastic Container Service) sobre AWS Fargate (Serverless)
+* **Pipeline CI/CD:** GitHub Actions Declarativo
 
-El ecosistema está compuesto por 4 componentes principales orquestados:
-* **Frontend:** Aplicación de interfaz de usuario (Node.js) corriendo en el puerto `3000`.
-* **Backend Ventas:** API REST en Java Spring Boot encargado del módulo de ventas en el puerto `8080`.
-* **Backend Despachos:** API REST en Java Spring Boot encargado del módulo de despachos en el puerto `8082`.
-* **Base de Datos:** Motor relacional MySQL 8.0 encargado de la persistencia (`duoc_db`).
+---
 
+## 📦 Estrategia de Contenerización (Dockerfile)
+La construcción de la imagen de producción se realiza mediante un proceso multi-etapa aislada. Esto permite compilar la aplicación utilizando Node.js, y transferir únicamente los artefactos finales listos hacia un servidor Nginx liviano, reduciendo la superficie de ataque y el peso del contenedor:
 
-# Requisitos Previos
+```dockerfile
+FROM node:18-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
 
-Para ejecutar este proyecto de manera local, asegúrate de tener instalado:
-* [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-* [Docker Compose](https://docs.docker.com/compose/)
-* Git
+FROM nginx:alpine
+# Inyección inline de configuración para el correcto ruteo del Frontend
+RUN echo 'server { \
+    listen 80; \
+    location / { \
+        root /usr/share/nginx/html; \
+        index index.html index.htm; \
+        try_files $uri $uri/ /index.html; \
+    } \
+}' > /etc/nginx/conf.d/default.conf
 
-
-# Cómo Ejecutar el Proyecto en Local
-
-Sigue estos pasos para levantar la arquitectura completa en tu máquina:
-
-1. Clonar el repositorio:
-
-   git clone [https://github.com/23eeliass/prueba2-devops.git](https://github.com/23eeliass/prueba2-devops.git)
-   cd prueba2-devops
-
-2. Levantar los contenedores con Docker Compose:
-
-Este comando descargará las imágenes base, compilará los proyectos Java/Node y encenderá los servicios:
-docker-compose up --build
-
-3. Acceder a la aplicación:
-
-Una vez que la terminal muestre que los servidores Tomcat han iniciado correctamente, abre tu navegador web e ingresa a:
-
-* Frontend Web: http://localhost:3000
-
-* API Ventas: http://localhost:8080
-
-* API Despachos: http://localhost:8082
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
 
 
-4. Detener el entorno:
-Para apagar los servicios de forma limpia sin dejar residuos en memoria: 
-docker-compose down
 
 
-* Pipeline de CI/CD (GitHub Actions)
 
-El proyecto cuenta con un flujo de integración continua automatizado en .github/workflows/. Ante cada push en la rama main, el robot realiza:
+🚀 Pipeline de Integración y Despliegue Continuo (CI/CD)
+El archivo de flujo de trabajo .github/workflows/deploy.yml está diseñado para reaccionar ante cambios en la rama principal (push), automatizando las siguientes fases de ingeniería:
 
-Compilación del código Java mediante Maven.
+Checkout: Descarga e inspección del código en el runner virtual de GitHub.
 
-Construcción de imágenes Docker optimizadas para cada microservicio.
+Configure AWS Credentials: Inyección segura de credenciales dinámicas de AWS Academy.
 
-Almacenamiento seguro de las imágenes en GitHub Packages (GHCR) como artefactos privados listos para su despliegue en producción.
+Login to Amazon ECR: Autenticación en el registro elástico de contenedores privado de AWS.
+
+Build & Push: Compilación de la imagen Docker bajo la etiqueta latest y subida inmediata al repositorio ECR.
+
+Deploy ECS Task: Creación de una nueva revisión del Task Definition en Amazon ECS, provocando que el servicio realice un rolling update controlado de la tarea sobre AWS Fargate de manera automatizada.
+
+
+
+🔒 Gestión de Variables y Secretos Seguros
+El pipeline requiere que se configuren de manera obligatoria las siguientes variables cifradas dentro del repositorio (Settings > Secrets and variables > Actions), mitigando riesgos de fugas de credenciales en los archivos de texto:
+
+AWS_ACCESS_KEY_ID
+
+AWS_SECRET_ACCESS_KEY
+
+AWS_SESSION_TOKEN
+
+
+
+🌐 Validación de Infraestructura y Acceso
+Networking: El contenedor se ejecuta exponiendo el puerto estándar web HTTP (80).
+
+Acceso del Cliente: Al operar en un entorno elástico dinámico (AWS Academy), la aplicación se encuentra expuesta para verificaciones y pruebas funcionales directamente mediante la IP Pública provista por la tarea activa de Fargate dentro del clúster elástico corporativo.
