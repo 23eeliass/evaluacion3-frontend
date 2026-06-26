@@ -8,7 +8,7 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: innovatech-frontend
-  ECS_CLUSTER: Cluster-Innovatech-V2
+  ECS_CLUSTER: Cluster-Innovatech-Prod
   ECS_SERVICE: servicio-frontend
 
 jobs:
