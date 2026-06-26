@@ -1,9 +1,9 @@
-name: Deploy Frontend a AWS ECS
+name: Main Frontend a AWS ECS
 
 on:
   push:
     branches:
-      - main  # Cambia esto a 'master' o 'deploy' si tu rama principal se llama distinto
+      -  main
 
 env:
   AWS_REGION: us-east-1
@@ -12,7 +12,7 @@ env:
   ECS_SERVICE: servicio-frontend
 
 jobs:
-  deploy:
+  main:
     runs-on: ubuntu-latest
 
     steps:
