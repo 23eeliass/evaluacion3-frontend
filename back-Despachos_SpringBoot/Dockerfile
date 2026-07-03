@@ -15,5 +15,5 @@ COPY --from=build /app/Springboot-API-REST-DESPACHO/target/*.jar app.jar
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
-EXPOSE 8081
+EXPOSE 8082
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -1,18 +1,19 @@
-name: Main Frontend a AWS ECS
+name: Despliegue de Arquitectura Completa a AWS ECS
 
 on:
   push:
     branches:
-      -  deploy
+      - deploy
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: innovatech-frontend
   ECS_CLUSTER: Cluster-Innovatech-Prod
-  ECS_SERVICE: servicio-frontend
+  ECR_FRONT: innovatech-frontend
+  ECR_VENTAS: innovatech-back-ventas
+  ECR_DESPACHOS: innovatech-back-despachos
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,15 +32,23 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Construir y Subir imagen a ECR
+    - name: Construir y Subir FRONTEND a ECR
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: latest
       run: |
-        cd front_despacho
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker build -t $ECR_REGISTRY/${{ env.ECR_FRONT }}:latest ./front_despacho
+        docker push $ECR_REGISTRY/${{ env.ECR_FRONT }}:latest
 
-    - name: Forzar nuevo despliegue en ECS para arreglar el error
+    - name: Construir y Subir BACKEND VENTAS a ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
       run: |
-        aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service ${{ env.ECS_SERVICE }} --force-new-deployment
+        docker build -t $ECR_REGISTRY/${{ env.ECR_VENTAS }}:latest ./back-Ventas_SpringBoot
+        docker push $ECR_REGISTRY/${{ env.ECR_VENTAS }}:latest
+
+    - name: Construir y Subir BACKEND DESPACHOS a ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      run: |
+        docker build -t $ECR_REGISTRY/${{ env.ECR_DESPACHOS }}:latest ./back-Despachos_SpringBoot
+        docker push $ECR_REGISTRY/${{ env.ECR_DESPACHOS }}:latest
